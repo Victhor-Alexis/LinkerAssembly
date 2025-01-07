@@ -103,115 +103,11 @@ int main(int argc, char* argv[]) {
 
     // Processa o primeiro arquivo
     processaArquivo(argv[1], dados1, U1, codigoMontado1, valores1);
-
     // Processa o segundo arquivo
     processaArquivo(argv[2], dados2, U2, codigoMontado2, valores2);
 
-    // Imprime os elementos da seção D1
-    std::cout << "D1 = { ";
-    bool primeiro = true;
-    for (const auto& [chave, valor] : dados1) {
-        if (!primeiro) {
-            std::cout << ", ";
-        }
-        std::cout << "'" << chave << "': " << valor;
-        primeiro = false;
-    }
-    std::cout << " }" << std::endl;
-
-    // Imprime os elementos da seção D2
-    std::cout << "D2 = { ";
-    primeiro = true;
-    for (const auto& [chave, valor] : dados2) {
-        if (!primeiro) {
-            std::cout << ", ";
-        }
-        std::cout << "'" << chave << "': " << valor;
-        primeiro = false;
-    }
-    std::cout << " }" << std::endl;
-
-    // Imprime os elementos da seção U1
-    std::cout << "U1 = { ";
-    primeiro = true;
-    for (const auto& [chave, valores] : U1) {
-        if (!primeiro) {
-            std::cout << ", ";
-        }
-        std::cout << "'" << chave << "': [";
-        for (size_t i = 0; i < valores.size(); ++i) {
-            if (i > 0) {
-                std::cout << ", ";
-            }
-            std::cout << valores[i];
-        }
-        std::cout << "]";
-        primeiro = false;
-    }
-    std::cout << " }" << std::endl;
-
-    // Imprime os elementos da seção U2
-    std::cout << "U2 = { ";
-    primeiro = true;
-    for (const auto& [chave, valores] : U2) {
-        if (!primeiro) {
-            std::cout << ", ";
-        }
-        std::cout << "'" << chave << "': [";
-        for (size_t i = 0; i < valores.size(); ++i) {
-            if (i > 0) {
-                std::cout << ", ";
-            }
-            std::cout << valores[i];
-        }
-        std::cout << "]";
-        primeiro = false;
-    }
-    std::cout << " }" << std::endl;
-
-    // Imprime a lista codigoMontado1 final
-    std::cout << "codigoMontado1 = { ";
-    for (size_t i = 0; i < codigoMontado1.size(); ++i) {
-        if (i > 0) {
-            std::cout << ", ";
-        }
-        std::cout << codigoMontado1[i];
-    }
-    std::cout << " }" << std::endl;
-
-    // Imprime a lista valores1
-    std::cout << "valores1 = { ";
-    for (size_t i = 0; i < valores1.size(); ++i) {
-        if (i > 0) {
-            std::cout << ", ";
-        }
-        std::cout << valores1[i];
-    }
-    std::cout << " }" << std::endl;
-
-    // Imprime a lista codigoMontado2 final
-    std::cout << "codigoMontado2 = { ";
-    for (size_t i = 0; i < codigoMontado2.size(); ++i) {
-        if (i > 0) {
-            std::cout << ", ";
-        }
-        std::cout << codigoMontado2[i];
-    }
-    std::cout << " }" << std::endl;
-
-    // Imprime a lista valores2
-    std::cout << "valores2 = { ";
-    for (size_t i = 0; i < valores2.size(); ++i) {
-        if (i > 0) {
-            std::cout << ", ";
-        }
-        std::cout << valores2[i];
-    }
-    std::cout << " }" << std::endl;
-
     int ultimoEnderecoMod1 = 0;
-    // associar valor com endereço da instrução para saber quais valores atualizar
-    std::map<int, int> enderecosValores, enderecosInstrucoes;
+    std::map<int, int> mapaEnderecosValores, mapaEnderecosInstrucoes;
 
     // Descobrir o último endereço do módulo 1 e remontar os endereços às instruções:
     for (size_t i = 0; i < codigoMontado1.size(); ++i) {
@@ -219,10 +115,10 @@ int main(int argc, char* argv[]) {
         // std::cout << ultimoEnderecoMod1;
         // std::cout << " ";
         // std::cout << codigoMontado1[i] << std::endl;
-        enderecosInstrucoes[ultimoEnderecoMod1] = codigoMontado1[i];
+        mapaEnderecosInstrucoes[ultimoEnderecoMod1] = codigoMontado1[i];
 
         if (i < valores1.size()) {
-            enderecosValores[ultimoEnderecoMod1] = valores1[i];
+            mapaEnderecosValores[ultimoEnderecoMod1] = valores1[i];
         }
         
         bool instrucaoTemValor = i < valores1.size(); // Se a instrução não tem valor, é const
@@ -254,9 +150,9 @@ int main(int argc, char* argv[]) {
 
     for (size_t i = 0; i < codigoMontado1.size(); ++i) {
         if (i < valores2.size()) {
-            enderecosValores[ultimoEnderecoMod1] = valores2[i];
+            mapaEnderecosValores[ultimoEnderecoMod1] = valores2[i];
         }
-        enderecosInstrucoes[ultimoEnderecoMod1] = codigoMontado2[i];
+        mapaEnderecosInstrucoes[ultimoEnderecoMod1] = codigoMontado2[i];
 
         bool instrucaoTemValor = i < valores1.size(); // Se a instrução não tem valor, é const
         bool ehInstrucaoCopy = codigoMontado2[i] == 9 && instrucaoTemValor;
@@ -275,75 +171,23 @@ int main(int argc, char* argv[]) {
     for (const auto& [chave, valores] : U1) {
         for (size_t i = 0; i < valores.size(); ++i) {
             int enderecoCallSimbolo = valores[i]-1;
-            enderecosValores[enderecoCallSimbolo] += newDados2[chave];
+            mapaEnderecosValores[enderecoCallSimbolo] += newDados2[chave];
         }
     }
 
     for (const auto& [chave, valores] : newU2) {
         for (size_t i = 0; i < valores.size(); ++i) {
             int enderecoCallSimbolo = valores[i]-1;
-            enderecosValores[enderecoCallSimbolo] += dados1[chave];
+            mapaEnderecosValores[enderecoCallSimbolo] += dados1[chave];
         }
     }
 
-    // Imprime os elementos da seção U2
-    std::cout << "novos endereços para tabela de usos mod2 = { ";
-    primeiro = true;
-    for (const auto& [chave, valores] : newU2) {
-        if (!primeiro) {
-            std::cout << ", ";
-        }
-        std::cout << "'" << chave << "': [";
-        for (size_t i = 0; i < valores.size(); ++i) {
-            if (i > 0) {
-                std::cout << ", ";
-            }
-            std::cout << valores[i];
-        }
-        std::cout << "]";
-        primeiro = false;
-    }
-    std::cout << " }" << std::endl;
-
-    std::cout << "Novos endereços tabela de def mod2 = { ";
-    primeiro = true;
-    for (const auto& [chave, valor] : newDados2) {
-        if (!primeiro) {
-            std::cout << ", ";
-        }
-        std::cout << "'" << chave << "': " << valor; 
-        primeiro = false;
-    }
-    std::cout << " }" << std::endl;
-
-    std::cout << "Endereços e valores = { ";
-    primeiro = true;
-    for (const auto& [chave, valor] : enderecosValores) {
-        if (!primeiro) {
-            std::cout << ", ";
-        }
-        std::cout << "'" << chave << "': " << valor; 
-        primeiro = false;
-    }
-    std::cout << " }" << std::endl;
-
-    std::cout << "Endereços e instruções  = { ";
-    primeiro = true;
-    for (const auto& [chave, valor] : enderecosInstrucoes) {
-        if (!primeiro) {
-            std::cout << ", ";
-        }
-        std::cout << "'" << chave << "': " << valor; 
-        primeiro = false;
-    }
-    std::cout << " }" << std::endl;
-
-    std::cout << "Código montado final =  ";
-    for (const auto& [chave, valor] : enderecosInstrucoes) {
-        std::cout << enderecosInstrucoes[chave];
+    /// Imprimir código montado final:
+    for (const auto& [chave, valor] : mapaEnderecosInstrucoes) {
+        std::cout << mapaEnderecosInstrucoes[chave];
         std::cout << " ";
-        if (enderecosValores.find(chave) != enderecosValores.end()) {
-            std::cout << enderecosValores[chave];
+        if (mapaEnderecosValores.find(chave) != mapaEnderecosValores.end()) {
+            std::cout << mapaEnderecosValores[chave];
             std::cout << " ";
         }
     }
