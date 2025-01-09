@@ -5,23 +5,51 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <map>
+
+void preencherMapasEndsInstsValores (
+    std::vector<int> codigoMontado,
+    std::vector<int> valores,
+    std::map<int, int> &mapaEnderecosInstrucoes,
+    std::map<int, int> &mapaEnderecosValores,
+    int &enderecoAtual
+);
+
+void atualizarValoresEnderecos (
+    std::unordered_map<std::string, std::vector<int>> tabelaUso, 
+    std::unordered_map<std::string, int> tabelaDef, 
+    std::map<int, int> &mapaEnderecosValores
+);
+
+void atualizarValoresDefinicoes (
+    std::unordered_map<std::string, std::vector<int>> tabelaUso, 
+    std::map<int, int> &mapaEndsValoresDefinicoesMod2,
+    std::map<int, int> &mapaEnderecosValores,
+    int fatorCorrecao
+);
+
+void exibirCodigoMontadoFinal(
+    std::map<int, int> mapaEnderecosValores, 
+    std::map<int, int> mapaEnderecosInstrucoes
+);
 
 int main(int argc, char* argv[]) {
-    // Verifica se o número correto de argumentos foi passado
+    // Verifica se o número correto de argumentos foi passado:
     if (argc != 3) {
         std::cerr << "Uso: " << argv[0] << " <arquivo1> <arquivo2>" << std::endl;
         return 1;
     }
 
-    // Mapas para armazenar os dados das seções D1, D2, U1 e U2
-    std::unordered_map<std::string, int> dados1, dados2, newDados2;
+    std::unordered_map<std::string, int> D1, D2, newD2;
     std::unordered_map<std::string, std::vector<int>> U1, U2, newU2;
 
-    // Vetores para armazenar codigoMontado e valores de cada arquivo
     std::vector<int> codigoMontado1, codigoMontado2, codigoMontadoFinal;
     std::vector<int> valores1, valores2, newValores1, newValores2;
+    std::map<int, int> mapaEnderecosValores, mapaEnderecosInstrucoes, mapaEndsValoresDefinicoesMod2;
+    size_t i = 0;
+    int enderecoAtual = 0;
 
-    // Função lambda para processar cada arquivo
+    // Função lambda para processar cada arquivo:
     auto processaArquivo = [&](const std::string& nomeArquivo, 
                                std::unordered_map<std::string, int>& dadosD, 
                                std::unordered_map<std::string, std::vector<int>>& dadosU, 
@@ -76,7 +104,7 @@ int main(int argc, char* argv[]) {
         std::vector<int> instrucoes;
         bool encontrouStop = false;
 
-        for (size_t i = 0; i < codigoMontado.size(); ++i) {
+        for (i = 0; i < codigoMontado.size(); ++i) {
             int atual = codigoMontado[i];
 
             if (encontrouStop) {
@@ -102,87 +130,119 @@ int main(int argc, char* argv[]) {
     };
 
     // Processa o primeiro arquivo
-    processaArquivo(argv[1], dados1, U1, codigoMontado1, valores1);
+    processaArquivo(argv[1], D1, U1, codigoMontado1, valores1);
     // Processa o segundo arquivo
-    processaArquivo(argv[2], dados2, U2, codigoMontado2, valores2);
+    processaArquivo(argv[2], D2, U2, codigoMontado2, valores2);
 
-    int ultimoEnderecoMod1 = 0;
-    std::map<int, int> mapaEnderecosValores, mapaEnderecosInstrucoes;
-
-    // Descobrir o último endereço do módulo 1 e remontar os endereços às instruções:
-    for (size_t i = 0; i < codigoMontado1.size(); ++i) {
-        // std::cout << "Linha: ";
-        // std::cout << ultimoEnderecoMod1;
-        // std::cout << " ";
-        // std::cout << codigoMontado1[i] << std::endl;
-        mapaEnderecosInstrucoes[ultimoEnderecoMod1] = codigoMontado1[i];
-
-        if (i < valores1.size()) {
-            mapaEnderecosValores[ultimoEnderecoMod1] = valores1[i];
-        }
-        
-        bool instrucaoTemValor = i < valores1.size(); // Se a instrução não tem valor, é const
-        bool ehInstrucaoCopy = codigoMontado1[i] == 9 && instrucaoTemValor;
-        bool ehInstrucaoQuePula2 = codigoMontado1[i] > 0 && codigoMontado1[i] < 14 && instrucaoTemValor;
-
-        if (ehInstrucaoCopy) {
-            ultimoEnderecoMod1 += 3;
-        } else if (ehInstrucaoQuePula2) {
-            ultimoEnderecoMod1 += 2;
-        } else {
-            ++ultimoEnderecoMod1;
-        }
-    }
+    preencherMapasEndsInstsValores(
+        codigoMontado1, 
+        valores1, 
+        mapaEnderecosInstrucoes, 
+        mapaEnderecosValores, 
+        enderecoAtual
+    );
 
     // Novos endereços da tabela de definições e uso (Só precisa mudar os do módulo 2):
+    int primeiroEnderecoMod2 = enderecoAtual;
     newU2 = U2;
-    for (const auto& [chave, valor] : dados2) {
-        newDados2[chave] = valor + ultimoEnderecoMod1;
+    for (const auto& [chave, valor] : D2) {
+        newD2[chave] = valor + primeiroEnderecoMod2;
     }
     for (const auto& [chave, valores] : U2) {
         std::vector<int> newValores;
-        for (size_t i = 0; i < valores.size(); ++i) {
-            newValores.push_back(valores[i] + ultimoEnderecoMod1);
+        for (i = 0; i < valores.size(); ++i) {
+            newValores.push_back(valores[i] + primeiroEnderecoMod2);
         }
         newU2[chave] = newValores;
     }
-    /////////////////////////////////////////////////
 
-    for (size_t i = 0; i < codigoMontado1.size(); ++i) {
-        if (i < valores2.size()) {
-            mapaEnderecosValores[ultimoEnderecoMod1] = valores2[i];
+    preencherMapasEndsInstsValores(
+        codigoMontado2, 
+        valores2, 
+        mapaEnderecosInstrucoes, 
+        mapaEnderecosValores, 
+        enderecoAtual
+    );
+
+    // pegar endereços e valores só do segundo módulo:
+    for(const auto& [chave, valores] : mapaEnderecosValores) {
+        if (chave >= primeiroEnderecoMod2) {
+            mapaEndsValoresDefinicoesMod2[chave] = mapaEnderecosValores[chave];
         }
-        mapaEnderecosInstrucoes[ultimoEnderecoMod1] = codigoMontado2[i];
+    }
 
-        bool instrucaoTemValor = i < valores1.size(); // Se a instrução não tem valor, é const
-        bool ehInstrucaoCopy = codigoMontado2[i] == 9 && instrucaoTemValor;
-        bool ehInstrucaoQuePula2 = codigoMontado2[i] > 0 && codigoMontado2[i] < 14 && instrucaoTemValor;
+    atualizarValoresEnderecos(U1, newD2, mapaEnderecosValores);
+    atualizarValoresEnderecos(newU2, D1, mapaEnderecosValores);
+    atualizarValoresDefinicoes(newU2, mapaEndsValoresDefinicoesMod2, mapaEnderecosValores, primeiroEnderecoMod2);
+
+    exibirCodigoMontadoFinal(mapaEnderecosValores, mapaEnderecosInstrucoes);
+
+    return 0;
+}
+
+void preencherMapasEndsInstsValores (
+    std::vector<int> codigoMontado,
+    std::vector<int> valores,
+    std::map<int, int> &mapaEnderecosInstrucoes,
+    std::map<int, int> &mapaEnderecosValores,
+    int &enderecoAtual
+) {
+    for (size_t i = 0; i < codigoMontado.size(); ++i) {
+        mapaEnderecosInstrucoes[enderecoAtual] = codigoMontado[i];
+
+        if (i < valores.size()) {
+            mapaEnderecosValores[enderecoAtual] = valores[i];
+        }
+        
+        bool instrucaoTemValor = i < valores.size(); // Se a instrução não tem valor, é const
+        bool ehInstrucaoCopy = codigoMontado[i] == 9 && instrucaoTemValor;
+        bool ehInstrucaoQuePula2 = codigoMontado[i] > 0 && codigoMontado[i] < 14 && instrucaoTemValor;
 
         if (ehInstrucaoCopy) {
-            ultimoEnderecoMod1 += 3;
+            enderecoAtual += 3;
         } else if (ehInstrucaoQuePula2) {
-            ultimoEnderecoMod1 += 2;
+            enderecoAtual += 2;
         } else {
-            ++ultimoEnderecoMod1;
+            ++enderecoAtual;
         }
     }
+}
 
-    // Atualizar valores:
-    for (const auto& [chave, valores] : U1) {
+void atualizarValoresEnderecos (
+    std::unordered_map<std::string, std::vector<int>> tabelaUso, 
+    std::unordered_map<std::string, int> tabelaDef, 
+    std::map<int, int> &mapaEnderecosValores
+) {
+    for (const auto& [chave, valores] : tabelaUso) {
         for (size_t i = 0; i < valores.size(); ++i) {
             int enderecoCallSimbolo = valores[i]-1;
-            mapaEnderecosValores[enderecoCallSimbolo] += newDados2[chave];
+            mapaEnderecosValores[enderecoCallSimbolo] += tabelaDef[chave];
         }
     }
+}
 
-    for (const auto& [chave, valores] : newU2) {
+void atualizarValoresDefinicoes (
+    std::unordered_map<std::string, std::vector<int>> tabelaUso, 
+    std::map<int, int> &mapaEndsValoresDefinicoesMod2,
+    std::map<int, int> &mapaEnderecosValores,
+    int fatorCorrecao
+) {
+    for (const auto& [chave, valores] : tabelaUso) {
         for (size_t i = 0; i < valores.size(); ++i) {
             int enderecoCallSimbolo = valores[i]-1;
-            mapaEnderecosValores[enderecoCallSimbolo] += dados1[chave];
+            mapaEndsValoresDefinicoesMod2.erase(enderecoCallSimbolo);
         }
     }
 
-    /// Imprimir código montado final:
+    for (const auto& [chave, valor] : mapaEndsValoresDefinicoesMod2) {
+        mapaEnderecosValores[chave] += fatorCorrecao;
+    }
+}
+
+void exibirCodigoMontadoFinal(
+    std::map<int, int> mapaEnderecosValores, 
+    std::map<int, int> mapaEnderecosInstrucoes
+) {
     for (const auto& [chave, valor] : mapaEnderecosInstrucoes) {
         std::cout << mapaEnderecosInstrucoes[chave];
         std::cout << " ";
@@ -191,8 +251,5 @@ int main(int argc, char* argv[]) {
             std::cout << " ";
         }
     }
-    
     std::cout << std::endl;
-
-    return 0;
 }
